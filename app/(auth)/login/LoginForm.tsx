@@ -16,19 +16,38 @@ export default function LoginForm({ redirectTo = "/" }: LoginFormProps) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
     const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string)?.trim() ?? "";
     const password = (formData.get("password") as string) ?? "";
 
+    // 🔎 Validate input
     if (!email || !password) {
       setError("Please fill in email and password.");
       return;
     }
 
     setIsSubmitting(true);
+
     try {
+      // 🔐 เรียก API login
       await axios.post("/api/auth/login", { email, password });
-      router.push(redirectTo);
+
+      // 🛡 ป้องกัน open redirect
+      let finalRedirect = "/";
+
+      if (
+        typeof redirectTo === "string" &&
+        redirectTo.startsWith("/") &&
+        !redirectTo.startsWith("//")
+      ) {
+        finalRedirect = redirectTo;
+      }
+
+      // ✅ Redirect ไปหน้าที่ตั้งใจเข้า
+      router.push(finalRedirect);
+
+      // refresh เพื่อโหลด session ใหม่
       router.refresh();
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.data?.error) {
@@ -43,11 +62,17 @@ export default function LoginForm({ redirectTo = "/" }: LoginFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {/* 🔴 Error message */}
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded" role="alert">
+        <p
+          className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded"
+          role="alert"
+        >
           {error}
         </p>
       )}
+
+      {/* 📧 Email */}
       <div className="flex flex-col gap-1">
         <label htmlFor="email" className="text-[13px] font-medium text-text-1">
           Email
@@ -61,6 +86,8 @@ export default function LoginForm({ redirectTo = "/" }: LoginFormProps) {
           autoComplete="email"
         />
       </div>
+
+      {/* 🔑 Password */}
       <div className="flex flex-col gap-1">
         <label htmlFor="password" className="text-[13px] font-medium text-text-1">
           Password
@@ -83,6 +110,8 @@ export default function LoginForm({ redirectTo = "/" }: LoginFormProps) {
           </button>
         </div>
       </div>
+
+      {/* 🚀 Submit */}
       <button
         type="submit"
         disabled={isSubmitting}
@@ -90,6 +119,8 @@ export default function LoginForm({ redirectTo = "/" }: LoginFormProps) {
       >
         {isSubmitting ? "Signing in…" : "Sign in"}
       </button>
+
+      {/* 🔁 ไปหน้า Register พร้อมส่ง redirect ต่อ */}
       <p className="text-center text-sm text-text-2">
         No account?{" "}
         <Link
